@@ -564,14 +564,14 @@ bool MotorController::setBrushedMotors()
 	return 1;
 }
 
-//bool MotorController::sendJog(vector<int> value)
-//{
-//	ostringstream os;
-//	os << value[0] << "," << value[1] << "," << value[2] << "," << value[3] << "," << value[4] << "," << value[5] << "," << value[6] << "," << value[7];
-//	string str="JG"+os.str();
-//	controller.command(str);
-//	return 1;
-//}
+bool MotorController::sendJog(vector<int> value)
+{
+	ostringstream os;
+	os << value[0] << "," << value[1] << "," << value[2] << "," << value[3] << "," << value[4] << "," << value[5] << "," << value[6] << "," << value[7];
+	string str="JG"+os.str();
+	controller.command(str);
+	return 1;
+}
 
 bool MotorController::setDefaults()
 {

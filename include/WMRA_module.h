@@ -2,7 +2,7 @@
 
 namespace WMRA{
 	class Pose;
-	//class Omni_data;
+	class Omni_data;
 	class JointValueSet;
 	enum CordFrame;
 };
@@ -15,8 +15,8 @@ namespace WMRA{
 		WMRA_module(void);
 		bool initialize();
 		bool autonomous(WMRA::Pose dest, WMRA::CordFrame crodFr, bool blocking = true);
+		bool teleoperation(WMRA::Pose data);
 		bool teleoperation(WMRA::Pose dest, WMRA::CordFrame cordFr);
-		//bool teleoperation(WMRA::Omni_data data);
 		bool openGripper(bool blocking = true);
 		bool closeGripper(bool blocking = true);
 		bool isGripperOpen();

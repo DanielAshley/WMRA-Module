@@ -165,6 +165,8 @@ public:
 	/// \Sends Jof command for velocity control
 	bool sendJog(vector<int> value);
 
+
+	vector<double> prevPosition;
 private:
 	galilController controller;
 	bool setDefaults(); // set defaults
@@ -186,7 +188,7 @@ private:
 	string motorLookup[8];
 	bool setPID(int motorNum, int P, int I, int D);
 	bool isValidMotor(int motorNum);
-
+	
 	vector<double> curPosition;
 	vector<double> lastKnownPos;
 };

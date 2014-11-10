@@ -171,93 +171,57 @@ bool Arm::autonomous(WMRA::Pose dest, WMRA::CordFrame cordFr, bool blocking){
 }
 
 
-//bool Arm::teleoperation(WMRA::Omni_data data){
-//	WMRA::Pose pose = this->getPose();
-//	ge
-//}
+bool Arm::teleoperation(WMRA::Pose data){
 
+	if(controller.getMotorMode() != 2){
+//		controller.prevPosition = controller.readPosAll(); // first update of last known position
+		controller.setMotorMode(MotorController::VELOCITY);
+	}
 
-//bool Arm::teleoperation(WMRA::Omni_data data){
-//	
-//	if(controller.getMotorMode() != 2)
-//		controller.setMotorMode(MotorController::VELOCITY);
-//	
-//	vector<int> joint_speed(8);
-//	vector<int> joint_position(8);
-//
-//	// Optimization code
-//
-//	joint_speed[0] = (int)ReceiveData[0];
-//	joint_speed[1] = (int)ReceiveData[1];
-//	joint_speed[2] = (int)ReceiveData[2];
-//	joint_speed[3] = (int)ReceiveData[3];
-//	joint_speed[4] = (int)ReceiveData[4];
-//	joint_speed[5] = -(int)ReceiveData[5];
-//	joint_speed[6] = (int)ReceiveData[6];
-//
-//
-//
-//
-//	//joint_speed[6]=-data.output_gimbal_speed[2];
-//	//joint_speed[5]= data.output_gimbal_speed[0];
-//	//joint_speed[2]=-data.output_gimbal_speed[0];
-//	//joint_speed[4]= data.output_gimbal_speed[1];
-//	//joint_speed[0]= data.output_speed[2];
-//	//joint_speed[1]= data.output_speed[0];
-//	//joint_speed[3]= data.output_speed[1];
-//
-//	joint_position = controller.readPosAll_raw();
-//
-//	joint_speed[0] = joint_speed_limit(1, joint_limit_avoidance(1, joint_position[0], joint_speed[0]));
-//	joint_speed[1] = joint_speed_limit(2, joint_limit_avoidance(2, joint_position[1], joint_speed[1]));
-//	joint_speed[2] = joint_speed_limit(3, joint_limit_avoidance(3, joint_position[2], joint_speed[2]));
-//	joint_speed[3] = joint_speed_limit(4, joint_limit_avoidance(4, joint_position[3], joint_speed[3]));
-//	joint_speed[4] = joint_speed_limit(5, joint_limit_avoidance(5, joint_position[4], joint_speed[4]));
-//	joint_speed[5] = joint_speed_limit(6, joint_limit_avoidance(6, joint_position[5], joint_speed[5]));
-//	joint_speed[6] = joint_speed_limit(7, joint_limit_avoidance(7, joint_position[6], joint_speed[6]));
-//	joint_speed[7] = joint_speed_limit(8, joint_limit_avoidance(8, joint_position[7], joint_speed[7]));
-//
-//	controller.sendJog(joint_speed);
-//}
+	vector<int> joint_speed(8);
+	vector<int> joint_position(8);
+	KinematicOptimizer opt; // WMRA kinematics optimizer functionality
+	Matrix Ta(4,4), T01(4,4), T12(4,4), T23(4,4), T34(4,4), T45(4,4), T56(4,4), T67(4,4);
+	Matrix Joa;
+	double detJoa;
+	vector<double> delta(8),currJointAng(7);
+	
+	vector<double> prevJointAng = controller.prevPosition;
+	
+	Matrix prevPosTF =  kinematics(prevJointAng);
+	Matrix curT  = kinematics(prevJointAng,Ta,T01,T12,T23,T34,T45,T56,T67);	
+         
+	// Calculating the 6X7 Jacobian of the arm in frame 0:
+    WMRA_J07(T01, T12, T23, T34, T45, T56, T67, Joa, detJoa);
 
-//bool Arm::teleoperation(WMRA::Pose dest, WMRA::CordFrame cordFr){
-//   if(!controller.isInitialized()){
-//      return false;
-//   }  
-//   vector<double> startJointAng = controller.readPosAll();
-//   Matrix startLoc_T = kinematics(controller.readPosAll());
-//   Matrix destLoc_T(4,4);
-//   if(cordFr == WMRA::ARM_FRAME_ABS){
-//      destLoc_T = pose2TfMat(dest);
-//   }
-//   else if( cordFr == WMRA::ARM_FRAME_PILOT_MODE){
-//      //destLoc_T = pose2TfMat(dest);
-//      Matrix temp = pose2TfMat(dest); // convert to rot matrix
-//      /* compensate for the gripper orintation difference compared to arm origin */
-//      destLoc_T =  temp * gripperInitRotDiff;  
-//      cout << destLoc_T << endl;
-//      /* set x, y, z values of the matrix*/
-//      destLoc_T(0,3) = dest.x;
-//      destLoc_T(1,3) = dest.y;
-//      destLoc_T(2,3) = dest.z;      
-//   }
-//   else if( cordFr == WMRA::ARM_FRAME_REL){
-//      destLoc_T = startLoc_T * WMRA_rotz(dest.yaw)*WMRA_roty(dest.pitch)*WMRA_rotx(dest.roll);;
-//      destLoc_T(0,3) = startLoc_T(0,3)+ dest.x;
-//      destLoc_T(1,3) = startLoc_T(1,3)+ dest.y;
-//      destLoc_T(2,3) = startLoc_T(2,3)+ dest.z;
-//      cout << destLoc_T << endl;
-//   }
-//   else if (cordFr == WMRA::GRIPPER_FRAME_REL){
-//      destLoc_T = startLoc_T * pose2TfMat(dest);
-//
-//   }
-//   else{ // if an invalid cord frame is given, move in arm base absolute
-//      destLoc_T = pose2TfMat(dest);
-//   }
-//   /**call autonomousMove with start and dest transformation matrices **/
-//   return teleoperationMove(startLoc_T, destLoc_T);
-//}
+	controller.prevPosition = controller.readPosAll();
+	Matrix currPosTF = kinematics(controller.prevPosition);
+
+    WMRA_delta(delta, prevPosTF , currPosTF);
+
+    Matrix jointAng_Mat = opt.WMRA_Opt2(Joa, detJoa, delta, prevJointAng, dt_mod);
+
+	joint_speed[0] = (int)jointAng_Mat(0,0);
+	joint_speed[1] = (int)jointAng_Mat(1,0);
+	joint_speed[2] = (int)jointAng_Mat(2,0);
+	joint_speed[3] = (int)jointAng_Mat(3,0);
+	joint_speed[4] = (int)jointAng_Mat(4,0);
+	joint_speed[5] = -(int)jointAng_Mat(5,0);
+	joint_speed[6] = (int)jointAng_Mat(6,0);
+
+	joint_position = controller.readPosAll_raw();
+
+	joint_speed[0] = joint_speed_limit(1, joint_limit_avoidance(1, joint_position[0], joint_speed[0]));
+	joint_speed[1] = joint_speed_limit(2, joint_limit_avoidance(2, joint_position[1], joint_speed[1]));
+	joint_speed[2] = joint_speed_limit(3, joint_limit_avoidance(3, joint_position[2], joint_speed[2]));
+	joint_speed[3] = joint_speed_limit(4, joint_limit_avoidance(4, joint_position[3], joint_speed[3]));
+	joint_speed[4] = joint_speed_limit(5, joint_limit_avoidance(5, joint_position[4], joint_speed[4]));
+	joint_speed[5] = joint_speed_limit(6, joint_limit_avoidance(6, joint_position[5], joint_speed[5]));
+	joint_speed[6] = joint_speed_limit(7, joint_limit_avoidance(7, joint_position[6], joint_speed[6]));
+	joint_speed[7] = joint_speed_limit(8, joint_limit_avoidance(8, joint_position[7], joint_speed[7]));
+
+	controller.sendJog(joint_speed);
+}
 
 
 bool Arm::teleoperation(WMRA::Pose dest, WMRA::CordFrame cordFr){
@@ -266,10 +230,7 @@ bool Arm::teleoperation(WMRA::Pose dest, WMRA::CordFrame cordFr){
    }  
    vector<double> startJointAng = controller.readPosAll();
    Matrix startLoc_T = kinematics(controller.readPosAll());
-   
-   
    Matrix destLoc_T(4,4);
-
    if(cordFr == WMRA::ARM_FRAME_ABS){
       destLoc_T = pose2TfMat(dest);
    }
@@ -292,17 +253,15 @@ bool Arm::teleoperation(WMRA::Pose dest, WMRA::CordFrame cordFr){
       cout << destLoc_T << endl;
    }
    else if (cordFr == WMRA::GRIPPER_FRAME_REL){
-      destLoc_T = startLoc_T *pose2TfMat(dest);
+      destLoc_T = startLoc_T * pose2TfMat(dest);
 
    }
    else{ // if an invalid cord frame is given, move in arm base absolute
       destLoc_T = pose2TfMat(dest);
    }
    /**call autonomousMove with start and dest transformation matrices **/
-   return autonomousMove(startLoc_T,destLoc_T,false);
-   //return teleoperationMove(startLoc_T, destLoc_T);
+   return teleoperationMove(startLoc_T, destLoc_T);
 }
-
 
 bool Arm::motionComplete() {
 	return controller.motionFinished();
