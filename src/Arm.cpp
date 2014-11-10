@@ -170,13 +170,106 @@ bool Arm::autonomous(WMRA::Pose dest, WMRA::CordFrame cordFr, bool blocking){
    return autonomousMove(startLoc_T, destLoc_T, blocking);
 }
 
+
+//bool Arm::teleoperation(WMRA::Omni_data data){
+//	WMRA::Pose pose = this->getPose();
+//	ge
+//}
+
+
+//bool Arm::teleoperation(WMRA::Omni_data data){
+//	
+//	if(controller.getMotorMode() != 2)
+//		controller.setMotorMode(MotorController::VELOCITY);
+//	
+//	vector<int> joint_speed(8);
+//	vector<int> joint_position(8);
+//
+//	// Optimization code
+//
+//	joint_speed[0] = (int)ReceiveData[0];
+//	joint_speed[1] = (int)ReceiveData[1];
+//	joint_speed[2] = (int)ReceiveData[2];
+//	joint_speed[3] = (int)ReceiveData[3];
+//	joint_speed[4] = (int)ReceiveData[4];
+//	joint_speed[5] = -(int)ReceiveData[5];
+//	joint_speed[6] = (int)ReceiveData[6];
+//
+//
+//
+//
+//	//joint_speed[6]=-data.output_gimbal_speed[2];
+//	//joint_speed[5]= data.output_gimbal_speed[0];
+//	//joint_speed[2]=-data.output_gimbal_speed[0];
+//	//joint_speed[4]= data.output_gimbal_speed[1];
+//	//joint_speed[0]= data.output_speed[2];
+//	//joint_speed[1]= data.output_speed[0];
+//	//joint_speed[3]= data.output_speed[1];
+//
+//	joint_position = controller.readPosAll_raw();
+//
+//	joint_speed[0] = joint_speed_limit(1, joint_limit_avoidance(1, joint_position[0], joint_speed[0]));
+//	joint_speed[1] = joint_speed_limit(2, joint_limit_avoidance(2, joint_position[1], joint_speed[1]));
+//	joint_speed[2] = joint_speed_limit(3, joint_limit_avoidance(3, joint_position[2], joint_speed[2]));
+//	joint_speed[3] = joint_speed_limit(4, joint_limit_avoidance(4, joint_position[3], joint_speed[3]));
+//	joint_speed[4] = joint_speed_limit(5, joint_limit_avoidance(5, joint_position[4], joint_speed[4]));
+//	joint_speed[5] = joint_speed_limit(6, joint_limit_avoidance(6, joint_position[5], joint_speed[5]));
+//	joint_speed[6] = joint_speed_limit(7, joint_limit_avoidance(7, joint_position[6], joint_speed[6]));
+//	joint_speed[7] = joint_speed_limit(8, joint_limit_avoidance(8, joint_position[7], joint_speed[7]));
+//
+//	controller.sendJog(joint_speed);
+//}
+
+//bool Arm::teleoperation(WMRA::Pose dest, WMRA::CordFrame cordFr){
+//   if(!controller.isInitialized()){
+//      return false;
+//   }  
+//   vector<double> startJointAng = controller.readPosAll();
+//   Matrix startLoc_T = kinematics(controller.readPosAll());
+//   Matrix destLoc_T(4,4);
+//   if(cordFr == WMRA::ARM_FRAME_ABS){
+//      destLoc_T = pose2TfMat(dest);
+//   }
+//   else if( cordFr == WMRA::ARM_FRAME_PILOT_MODE){
+//      //destLoc_T = pose2TfMat(dest);
+//      Matrix temp = pose2TfMat(dest); // convert to rot matrix
+//      /* compensate for the gripper orintation difference compared to arm origin */
+//      destLoc_T =  temp * gripperInitRotDiff;  
+//      cout << destLoc_T << endl;
+//      /* set x, y, z values of the matrix*/
+//      destLoc_T(0,3) = dest.x;
+//      destLoc_T(1,3) = dest.y;
+//      destLoc_T(2,3) = dest.z;      
+//   }
+//   else if( cordFr == WMRA::ARM_FRAME_REL){
+//      destLoc_T = startLoc_T * WMRA_rotz(dest.yaw)*WMRA_roty(dest.pitch)*WMRA_rotx(dest.roll);;
+//      destLoc_T(0,3) = startLoc_T(0,3)+ dest.x;
+//      destLoc_T(1,3) = startLoc_T(1,3)+ dest.y;
+//      destLoc_T(2,3) = startLoc_T(2,3)+ dest.z;
+//      cout << destLoc_T << endl;
+//   }
+//   else if (cordFr == WMRA::GRIPPER_FRAME_REL){
+//      destLoc_T = startLoc_T * pose2TfMat(dest);
+//
+//   }
+//   else{ // if an invalid cord frame is given, move in arm base absolute
+//      destLoc_T = pose2TfMat(dest);
+//   }
+//   /**call autonomousMove with start and dest transformation matrices **/
+//   return teleoperationMove(startLoc_T, destLoc_T);
+//}
+
+
 bool Arm::teleoperation(WMRA::Pose dest, WMRA::CordFrame cordFr){
    if(!controller.isInitialized()){
       return false;
    }  
    vector<double> startJointAng = controller.readPosAll();
    Matrix startLoc_T = kinematics(controller.readPosAll());
+   
+   
    Matrix destLoc_T(4,4);
+
    if(cordFr == WMRA::ARM_FRAME_ABS){
       destLoc_T = pose2TfMat(dest);
    }
@@ -199,14 +292,15 @@ bool Arm::teleoperation(WMRA::Pose dest, WMRA::CordFrame cordFr){
       cout << destLoc_T << endl;
    }
    else if (cordFr == WMRA::GRIPPER_FRAME_REL){
-      destLoc_T = startLoc_T * pose2TfMat(dest);
+      destLoc_T = startLoc_T *pose2TfMat(dest);
 
    }
    else{ // if an invalid cord frame is given, move in arm base absolute
       destLoc_T = pose2TfMat(dest);
    }
    /**call autonomousMove with start and dest transformation matrices **/
-   return teleoperationMove(startLoc_T, destLoc_T);
+   return autonomousMove(startLoc_T,destLoc_T,false);
+   //return teleoperationMove(startLoc_T, destLoc_T);
 }
 
 
@@ -524,4 +618,184 @@ bool Arm::setDefaults()
       return 0;
    }
    return 1;
+}
+
+int Arm::joint_limit_avoidance(int joint_name, int encoder_count, int speed)
+{
+	const int Joint_A_encoder_min = -2240640;
+	const int Joint_A_encoder_max = 1712130;
+	const int Joint_B_encoder_min = -2384620;
+	const int Joint_B_encoder_max = 900000;
+	const int Joint_C_encoder_min = -500000;
+	const int Joint_C_encoder_max = 800000;
+	const int Joint_D_encoder_min = -1200000;
+	const int Joint_D_encoder_max = 800000;
+	const int Joint_E_encoder_min = -1000000;
+	const int Joint_E_encoder_max = 1557420;
+	const int Joint_F_encoder_min = -384987;
+	const int Joint_F_encoder_max = 1543350;
+	const int Joint_G_encoder_min = -1387870;
+	const int Joint_G_encoder_max = 1100000;
+	const int Joint_H_encoder_min = -600000;
+	const int Joint_H_encoder_max = 600000;
+	switch (joint_name)
+	{
+	case 1:
+		if (encoder_count>Joint_A_encoder_max && speed>0)
+		{
+			return 0;
+		}
+		else if (encoder_count<Joint_A_encoder_min && speed<0)
+		{
+			return 0;
+		}
+		else
+		{
+			return speed;
+		}
+		break;
+	case 2:
+		if (encoder_count>Joint_B_encoder_max && speed>0)
+		{
+			return 0;
+		}
+		else if (encoder_count<Joint_B_encoder_min && speed<0)
+		{
+			return 0;
+		}
+		else
+		{
+			return speed;
+		}
+		break;
+	case 3:
+		if (encoder_count>Joint_C_encoder_max && speed>0)
+		{
+			return 0;
+		}
+		else if (encoder_count<Joint_C_encoder_min && speed<0)
+		{
+			return 0;
+		}
+		else
+		{
+			return speed;
+		}
+		break;
+	case 4:
+		if (encoder_count>Joint_D_encoder_max && speed>0)
+		{
+			return 0;
+		}
+		else if (encoder_count<Joint_D_encoder_min && speed<0)
+		{
+			return 0;
+		}
+		else
+		{
+			return speed;
+		}
+		break;
+	case 5:
+		if (encoder_count>Joint_E_encoder_max && speed>0)
+		{
+			return 0;
+		}
+		else if (encoder_count<Joint_E_encoder_min && speed<0)
+		{
+			return 0;
+		}
+		else
+		{
+			return speed;
+		}
+		break;
+	case 6:
+		if (encoder_count>Joint_F_encoder_max && speed>0)
+		{
+			return 0;
+		}
+		else if (encoder_count<Joint_F_encoder_min && speed<0)
+		{
+			return 0;
+		}
+		else
+		{
+			return speed;
+		}
+		break;
+	case 7:
+		if (encoder_count>Joint_G_encoder_max && speed>0)
+		{
+			return 0;
+		}
+		else if (encoder_count<Joint_G_encoder_min && speed<0)
+		{
+			return 0;
+		}
+		else
+		{
+			return speed;
+		}
+		break;
+	case 8:
+		if (encoder_count>Joint_H_encoder_max && speed>0)
+		{
+			return 0;
+		}
+		else if (encoder_count<Joint_H_encoder_min && speed<0)
+		{
+			return 0;
+		}
+		else
+		{
+			return speed;
+		}
+		break;
+	default:return 0; break;
+	}
+}
+
+int Arm::joint_max_speed(int joint_name)
+{
+	const int joint_A_max_speed = 100000;
+	const int joint_B_max_speed = 200000;
+	const int joint_C_max_speed = 200000;
+	const int joint_D_max_speed = 200000;
+	const int joint_E_max_speed = 200000;
+	const int joint_F_max_speed = 200000;
+	const int joint_G_max_speed = 150000;
+	const int joint_H_max_speed = 250000;
+
+	switch (joint_name)
+	{
+	case 1:return joint_A_max_speed; break;
+	case 2:return joint_B_max_speed; break;
+	case 3:return joint_C_max_speed; break;
+	case 4:return joint_D_max_speed; break;
+	case 5:return joint_E_max_speed; break;
+	case 6:return joint_F_max_speed; break;
+	case 7:return joint_G_max_speed; break;
+	case 8:return joint_H_max_speed; break;
+	default:return 0; break;
+	}
+}
+
+int Arm::joint_speed_limit(int joint_name, int speed)
+{
+	if(abs(speed)>joint_max_speed(joint_name))
+	{
+		if(speed>0)
+		{
+			return joint_max_speed(joint_name);
+		}
+		else
+		{
+			return -joint_max_speed(joint_name);
+		}
+	}
+	else
+	{
+		return speed;
+	}
 }

@@ -1,5 +1,6 @@
 #include "WMRA_module.h"
 #include "Arm.h"
+#include "WmraTypes.h"
 
 using namespace WMRA;
 Arm arm;
@@ -23,6 +24,11 @@ bool WMRA_module::teleoperation(WMRA::Pose dest, WMRA::CordFrame cordFr)
 {
 	return arm.teleoperation(dest, cordFr);
 }
+
+//bool WMRA_module::teleoperation(WMRA::Omni_data data)
+//{
+//	return arm.teleoperation(data);
+//}
 
 bool WMRA_module::openGripper(bool blocking)
 {

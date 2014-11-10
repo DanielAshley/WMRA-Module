@@ -18,7 +18,7 @@ using namespace std;
 
 class MotorController {
 public:
-	enum motorControlMode  {POS_CONTROL = 0, LINEAR};
+	enum motorControlMode  {POS_CONTROL = 0, LINEAR, VELOCITY};
 	MotorController();
 	~MotorController();
 
@@ -92,6 +92,9 @@ public:
 	/// \brief returns all of the current motor angle in radians. reads from galil controller
 	std::vector<double> readPosAll();
 
+	/// \brief returns all of the current motor angle in radians. reads from galil controller
+	std::vector<int> readPosAll_raw();
+
 	/// \brief returns the error in
 	double readPosErr(int motorNum); 
 
@@ -157,6 +160,10 @@ public:
 
 	/// \Turns motors off
 	bool MotorsOFF();
+
+	
+	/// \Sends Jof command for velocity control
+	bool sendJog(vector<int> value);
 
 private:
 	galilController controller;

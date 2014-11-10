@@ -90,8 +90,5 @@ namespace WMRA{
          return ss.str();
       }
    };
-
-   
-
 }
 #endif;
